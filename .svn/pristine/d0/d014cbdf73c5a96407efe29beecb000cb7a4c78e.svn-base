@@ -1,0 +1,192 @@
+//
+//  NewTaskViewController.m
+//  SaleDemo
+//
+//  Created by wuzhensong on 14-4-27.
+//  Copyright (c) 2014年 mosh. All rights reserved.
+//
+
+#import "NewTaskViewController.h"
+#import "TaskModel.h"
+#import "DateManger.h"
+
+static CGFloat scrollViewHeight = 524;
+
+@interface NewTaskViewController ()
+
+@end
+
+@implementation NewTaskViewController
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        // Custom initialization
+        self.taskState = TaskState_new;
+    }
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    
+    self.baseScrollView.contentSize = CGSizeMake(SCREENWIDTH, scrollViewHeight);
+    [self createBarWithLeftBarItem:MoshNavigationBarItemBack rightBarItem:MoshNavigationBarItemNone title:@"新建任务"];
+    [self.dateButton setTitle:[GlobalConfig date:[NSDate date] format:DATEFORMAT_06] forState:UIControlStateNormal];
+    [self.timeButton setTitle:[GlobalConfig date:[NSDate date] format:DATEFORMAT_07] forState:UIControlStateNormal];
+    
+    if (self.taskState == TaskState_finish) {
+        
+        [self.uploadButton setTitle:@"完成拜访" forState:UIControlStateNormal];
+        self.title = @"查看任务";
+        self.clientText.text = self.task.client;
+        self.addressText.text = self.task.address;
+        self.otherText.text = self.task.other;
+        
+        [self.cityButton setTitle:self.task.city forState:UIControlStateNormal];
+        [self.stateButton setTitle:self.task.state forState:UIControlStateNormal];
+        [self.remarkButton setTitle:self.task.remark forState:UIControlStateNormal];
+        [self.alertButton setTitle:self.task.alert forState:UIControlStateNormal];
+        [self.dateButton setTitle:self.task.date forState:UIControlStateNormal];
+        [self.timeButton setTitle:self.task.time forState:UIControlStateNormal];
+        
+        self.uploadButton.hidden  = self.task.finish;
+    }
+
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (BOOL) textFieldShouldReturn:(UITextField *)textField
+{
+    [textField resignFirstResponder];
+    return YES;
+}
+
+
+- (IBAction)dateClick:(id)sender {
+    WSDatePickerView *date = [[WSDatePickerView alloc] initWithdataPickerMode:UIDatePickerModeDate];
+    date.backgroundColor = [UIColor grayColor];
+    date.delegate = self;
+    [self.view.window addSubview:date];
+}
+
+- (void) wsdatePickerSelectDate:(NSDate *)date mode:(UIDatePickerMode)mode
+{
+    if (mode == UIDatePickerModeDate) {
+        [self.dateButton setTitle:[GlobalConfig date:date format:DATEFORMAT_06] forState:UIControlStateNormal];
+    }
+    else if (mode == UIDatePickerModeTime) {
+        [self.timeButton setTitle:[GlobalConfig date:date format:DATEFORMAT_07] forState:UIControlStateNormal];
+    }
+}
+
+
+- (IBAction)timeClick:(id)sender {
+    WSDatePickerView *date = [[WSDatePickerView alloc] initWithdataPickerMode:UIDatePickerModeTime];
+    date.backgroundColor = [UIColor grayColor];
+    date.delegate = self;
+    [self.view.window addSubview:date];
+}
+
+- (IBAction)upload:(id)sender {
+    if (![GlobalConfig isKindOfNSStringClassAndLenthGreaterThanZero:self.clientText.text Alert:@"拜访对象不能为空"]) {
+        return;
+    }
+    if (![GlobalConfig isKindOfNSStringClassAndLenthGreaterThanZero:self.dateButton.titleLabel.text Alert:@"拜访日期不能为空"]) {
+        return;
+    }
+    
+    if (![GlobalConfig isKindOfNSStringClassAndLenthGreaterThanZero:self.timeButton.titleLabel.text Alert:@"拜访时间不能为空"]) {
+        return;
+    }
+    
+    if (![GlobalConfig isKindOfNSStringClassAndLenthGreaterThanZero:self.cityButton.titleLabel.text     Alert:@"城市不能为空"]) {
+        return;
+    }
+    
+    if (![GlobalConfig isKindOfNSStringClassAndLenthGreaterThanZero:self.addressText.text Alert:@"地址不能为空"]) {
+        return;
+    }
+    
+    if (self.taskState == TaskState_new) {
+        TaskModel *model = [[TaskModel alloc] init];
+        model.client = [GlobalConfig convertToString:self.clientText.text];
+        model.date = [GlobalConfig convertToString:self.dateButton.titleLabel.text];
+        model.time = [GlobalConfig convertToString:self.timeButton.titleLabel.text];
+        model.city = [GlobalConfig convertToString:self.cityButton.titleLabel.text];
+        model.address = [GlobalConfig convertToString:self.addressText.text];
+        model.state = [GlobalConfig convertToString:self.stateButton.titleLabel.text];
+        model.other = [GlobalConfig convertToString:self.otherText.text];
+        model.remark = [GlobalConfig convertToString:self.remarkButton.titleLabel.text];
+        model.alert = [GlobalConfig convertToString:self.alertButton.titleLabel.text];
+        model.finish = NO;
+        [[DateManger shareDateManger] addtask:model];
+        [GlobalConfig alert:@"上传任务成功"];
+        [self.navigationController popViewControllerAnimated:YES];
+    }
+    else {
+        self.task.finish = YES;
+        [GlobalConfig alert:@"完成拜访"];
+        [self.navigationController popViewControllerAnimated:YES];
+    }
+    
+}
+
+- (IBAction)addImage:(id)sender {
+}
+
+- (IBAction)cityClick:(id)sender {
+    CityPickerView *pickerView = [[CityPickerView alloc] initWithFrame:CGRectZero];
+    pickerView.backgroundColor = [UIColor grayColor];
+    pickerView.delegate = self;
+    [self.view.window addSubview:pickerView];
+}
+
+- (void) doneWithSelectCity:(NSString *)cityName
+{
+    [self.cityButton setTitle:cityName forState:UIControlStateNormal];
+}
+
+
+- (IBAction)remarkClick:(id)sender {
+    NSArray *array =   @[@"初次见面",@"商业洽谈",@"回访客户",@"签订合同"];
+    WSPickerView *view = [[WSPickerView alloc] initWithDataArray:array];
+    view.backgroundColor = [UIColor grayColor];
+    view.delegate = self;
+    [self.view.window addSubview:view];
+    
+}
+
+- (void) wsPickerSelectIndex:(NSInteger)index pickerView:(WSPickerView *)view
+{
+    NSArray *array = @[@"初次见面",@"商业洽谈",@"回访客户",@"签订合同"];
+    if (index < array.count) {
+        [self.remarkButton setTitle:array[index] forState:UIControlStateNormal];
+    }
+}
+
+- (IBAction)stateClick:(id)sender {
+}
+
+- (IBAction)alertClick:(id)sender {
+}
+
+- (IBAction)clientList:(id)sender {
+    ClientVisitListViewController *ctl = (ClientVisitListViewController *) [ClientVisitListViewController viewController];
+    ctl.delegate = self;
+    [self.navigationController pushViewController:ctl animated:YES];
+}
+
+- (void) selectClient:(ClientModel *)client
+{
+    self.clientText.text = client.name;
+}
+
+@end

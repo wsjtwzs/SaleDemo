@@ -1,0 +1,254 @@
+//
+//  NewTaskViewController.m
+//  SaleDemo
+//
+//  Created by wuzhensong on 14-4-27.
+//  Copyright (c) 2014年 mosh. All rights reserved.
+//
+
+#import "NewTaskViewController.h"
+#import "TaskModel.h"
+#import "DateManger.h"
+
+typedef enum{
+    PickerViewModel_remark = 1000,
+    PickerViewModel_state = 1001,
+    PickerViewModel_alert = 1002,
+} PickerViewModel;
+
+static CGFloat scrollViewHeight = 524;
+
+@interface NewTaskViewController ()
+
+@end
+
+@implementation NewTaskViewController
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        // Custom initialization
+        self.taskState = TaskState_new;
+    }
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    
+    self.baseScrollView.contentSize = CGSizeMake(SCREENWIDTH, scrollViewHeight);
+    [self createBarWithLeftBarItem:MoshNavigationBarItemBack rightBarItem:MoshNavigationBarItemNone title:@"新建任务"];
+    [self.dateButton setTitle:[GlobalConfig date:[NSDate date] format:DATEFORMAT_02] forState:UIControlStateNormal];
+//    [self.timeButton setTitle:[GlobalConfig date:[NSDate date] format:DATEFORMAT_07] forState:UIControlStateNormal];
+    
+    if (self.taskState == TaskState_finish) {
+        
+        [self.uploadButton setTitle:@"完成拜访" forState:UIControlStateNormal];
+        self.title = @"查看任务";
+        self.clientText.text = self.task.client;
+        self.addressText.text = self.task.address;
+        self.otherText.text = self.task.other;
+        
+        [self.cityButton setTitle:self.task.city forState:UIControlStateNormal];
+        [self.stateButton setTitle:self.task.state forState:UIControlStateNormal];
+        [self.remarkButton setTitle:self.task.remark forState:UIControlStateNormal];
+        [self.alertButton setTitle:self.task.alert forState:UIControlStateNormal];
+        [self.dateButton setTitle:self.task.date forState:UIControlStateNormal];
+//        [self.timeButton setTitle:self.task.time forState:UIControlStateNormal];
+        
+        self.uploadButton.hidden  = self.task.finish;
+    }
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyBoardDidShow:) name:UIKeyboardDidShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyBoardDidDisapper:) name:UIKeyboardDidHideNotification object:nil];
+
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+
+#pragma mark - buttonClick -
+- (IBAction)dateClick:(id)sender {
+    if (!self.pickerView_date.superview) {
+        self.pickerView_date = [[WSDatePickerView alloc] initWithdataPickerMode:UIDatePickerModeDateAndTime];
+        self.pickerView_date.backgroundColor = [UIColor grayColor];
+        self.pickerView_date.delegate = self;
+        [self.view.window addSubview:self.pickerView_date];
+    }
+}
+
+//- (IBAction)timeClick:(id)sender {
+//    WSDatePickerView *date = [[WSDatePickerView alloc] initWithdataPickerMode:UIDatePickerModeTime];
+//    date.backgroundColor = [UIColor grayColor];
+//    date.delegate = self;
+//    [self.view.window addSubview:date];
+//}
+
+- (IBAction)upload:(id)sender {
+    if (![GlobalConfig isKindOfNSStringClassAndLenthGreaterThanZero:self.clientText.text Alert:@"拜访对象不能为空"]) {
+        return;
+    }
+    if (![GlobalConfig isKindOfNSStringClassAndLenthGreaterThanZero:self.dateButton.titleLabel.text Alert:@"拜访时间不能为空"]) {
+        return;
+    }
+    
+    if (![GlobalConfig isKindOfNSStringClassAndLenthGreaterThanZero:self.cityButton.titleLabel.text     Alert:@"城市不能为空"]) {
+        return;
+    }
+    
+    if (![GlobalConfig isKindOfNSStringClassAndLenthGreaterThanZero:self.addressText.text Alert:@"地址不能为空"]) {
+        return;
+    }
+    
+    if (self.taskState == TaskState_new) {
+        TaskModel *model = [[TaskModel alloc] init];
+        model.client = [GlobalConfig convertToString:self.clientText.text];
+        model.date = [GlobalConfig convertToString:self.dateButton.titleLabel.text];
+//        model.time = [GlobalConfig convertToString:self.timeButton.titleLabel.text];
+        model.city = [GlobalConfig convertToString:self.cityButton.titleLabel.text];
+        model.address = [GlobalConfig convertToString:self.addressText.text];
+        model.state = [GlobalConfig convertToString:self.stateButton.titleLabel.text];
+        model.other = [GlobalConfig convertToString:self.otherText.text];
+        model.remark = [GlobalConfig convertToString:self.remarkButton.titleLabel.text];
+        model.alert = [GlobalConfig convertToString:self.alertButton.titleLabel.text];
+        model.finish = NO;
+        [[DateManger shareDateManger] addtask:model];
+        [GlobalConfig alert:@"上传任务成功"];
+        [self.navigationController popViewControllerAnimated:YES];
+    }
+    else {
+        self.task.finish = YES;
+        [GlobalConfig alert:@"完成拜访"];
+        [self.navigationController popViewControllerAnimated:YES];
+    }
+    
+}
+
+- (IBAction)stateClick:(id)sender {
+    
+    if (!self.pickerView_state.superview) {
+        NSArray *array = @[@"普通",@"紧急重要",@"无效"];
+       self.pickerView_state = [self createPickerViewWithDataArray:array];
+    }
+}
+
+- (IBAction)alertClick:(id)sender {
+    if (!self.pickerView_alert.superview) {
+        NSArray *array =   @[@"不提醒",@"30分钟",@"1小时",@"24小时",@"1周"];
+       self.pickerView_alert = [self createPickerViewWithDataArray:array];
+    }
+}
+
+- (IBAction)remarkClick:(id)sender {
+    if (!self.pickerView_remark.superview) {
+        NSArray *array =   @[@"初次见面",@"商业洽谈",@"回访客户",@"签订合同"];
+       self.pickerView_remark = [self createPickerViewWithDataArray:array];
+    }
+}
+
+- (IBAction)clientList:(id)sender {
+    ClientVisitListViewController *ctl = (ClientVisitListViewController *) [ClientVisitListViewController viewController];
+    ctl.delegate = self;
+    [self.navigationController pushViewController:ctl animated:YES];
+}
+
+
+
+- (IBAction)addImage:(id)sender {
+}
+
+- (IBAction)cityClick:(id)sender {
+    if (!self.pickerView_city.superview) {
+        self.pickerView_city = [[CityPickerView alloc] initWithFrame:CGRectZero];
+        self.pickerView_city.backgroundColor = [UIColor grayColor];
+        self.pickerView_city.delegate = self;
+        [self.view.window addSubview:self.pickerView_city];
+    }
+}
+
+- (void) navBackClick
+{
+    [self.pickerView_remark removeWSPickerView];
+    [self.pickerView_alert removeWSPickerView];
+    [self.pickerView_state removeWSPickerView];
+    [super navBackClick];
+}
+#pragma mark - cityPickerViewDelegate -
+
+- (void) doneWithSelectCity:(NSString *)cityName
+{
+    [self.cityButton setTitle:cityName forState:UIControlStateNormal];
+}
+
+- (WSPickerView *) createPickerViewWithDataArray:(NSArray *)array
+{
+    WSPickerView *view = [[WSPickerView alloc] initWithDataArray:array];
+    view.backgroundColor = [UIColor grayColor];
+    view.delegate = self;
+    [self.view.window addSubview:view];
+    return view;
+}
+
+#pragma  mark - pickerViewDelegate -
+
+- (void) wsPickerSelectIndex:(NSInteger)index pickerView:(WSPickerView *)view
+{
+    if (view == self.pickerView_remark) {
+        NSArray *array = @[@"初次见面",@"商业洽谈",@"回访客户",@"签订合同"];
+        if (index < array.count) {
+            [self.remarkButton setTitle:array[index] forState:UIControlStateNormal];
+        }
+    }else if (view == self.pickerView_state) {
+        NSArray *array =   @[@"普通",@"紧急重要",@"无效"];
+        if (index < array.count) {
+            [self.stateButton setTitle:array[index] forState:UIControlStateNormal];
+        }
+    }
+    else if (view == self.pickerView_alert) {
+        NSArray *array =   @[@"不提醒",@"30分钟",@"1小时",@"24小时",@"1周"];
+        if (index < array.count) {
+            [self.alertButton setTitle:array[index] forState:UIControlStateNormal];
+        }
+    }
+}
+
+#pragma mark - WSDatePickeViewDelegate -
+- (void) wsdatePickerSelectDate:(NSDate *)date mode:(UIDatePickerMode)mode
+{
+    if (mode == UIDatePickerModeDateAndTime) {
+        [self.dateButton setTitle:[GlobalConfig date:date format:DATEFORMAT_02] forState:UIControlStateNormal];
+    }
+}
+
+#pragma  mark - ClientListDelegate -
+- (void) selectClient:(ClientModel *)client
+{
+    self.clientText.text = client.name;
+}
+
+#pragma mark - UITextFieldDelegate -
+
+- (BOOL) textFieldShouldReturn:(UITextField *)textField
+{
+    [textField resignFirstResponder];
+    return YES;
+}
+
+#pragma mark - UIKeyboardNotification -
+- (void) keyBoardDidShow:(NSNotification *)noti
+{
+    [GlobalConfig keyBoardDidShow:noti scrollView:self.baseScrollView];
+}
+
+- (void) keyBoardDidDisapper:(NSNotification *)noti
+{
+    [GlobalConfig keyBoardDidDisapper:noti scrollView:self.baseScrollView];
+}
+
+@end

@@ -1,0 +1,121 @@
+//
+//  NewClientViewController.m
+//  SaleDemo
+//
+//  Created by wuzhensong on 14-4-28.
+//  Copyright (c) 2014年 mosh. All rights reserved.
+//
+
+#import "NewClientViewController.h"
+#import "DateManger.h"
+
+static CGFloat scrollViewHeight = 568.0;
+
+@interface NewClientViewController ()
+
+@end
+
+@implementation NewClientViewController
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        self.state = ClientState_new;
+        self.client = [[ClientModel alloc] init];
+    }
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    // Do any additional setup after loading the view from its nib.
+    [self createBarWithLeftBarItem:MoshNavigationBarItemBack rightBarItem:MoshNavigationBarItemNone title:@"新建名片"];
+    self.baseScrollView.contentSize = CGSizeMake(SCREENWIDTH, scrollViewHeight);
+    
+    if (self.state == ClientState_finish) {
+        
+        self.title = @"查看名片";
+        self.name.text = self.client.name;
+        self.position.text = self.client.position;
+        self.phone.text = self.client.phoneNumber;
+        self.number.text = self.client.number;
+        self.fox.text = self.client.fax;
+        self.email.text = self.client.email;
+        self.company.text = self.client.company;
+        self.address.text = self.client.address;
+        self.postcode.text = self.client.postcode;
+
+    }
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyBoardDidShow:) name:UIKeyboardDidShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyBoardDidDisapper:) name:UIKeyboardDidHideNotification object:nil];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (BOOL) textFieldShouldReturn:(UITextField *)textField
+{
+    NSArray *array = @[self.name,self.position,self.phone,self.number,self.fox,self.email,self.company,self.address,self.postcode];
+    [GlobalConfig textFieldReturnKeyWithArray:array];
+//    [textField resignFirstResponder];
+    return YES;
+}
+
+
+- (IBAction)upload:(id)sender {
+    if (![GlobalConfig isKindOfNSStringClassAndLenthGreaterThanZero:self.name.text Alert:@"姓名不能为空"]) {
+        return;
+    }
+    if (![GlobalConfig isKindOfNSStringClassAndLenthGreaterThanZero:self.phone.text Alert:@"手机号不能为空"]) {
+          return;
+    }
+
+    if (![GlobalConfig isKindOfNSStringClassAndLenthGreaterThanZero:self.address.text Alert:@"住址不能为空"]) {
+        return;
+    }
+
+    if (self.state == ClientState_new) {
+       
+        [[DateManger shareDateManger] addClient:[self saveClient:self.client]];
+        
+    }
+    else {
+        [self saveClient:self.client];
+    }
+    [GlobalConfig alert:@"保存成功"];
+    [self.navigationController popViewControllerAnimated:YES];
+    
+}
+
+- (ClientModel *) saveClient:(ClientModel *)model
+{
+    model.name = [GlobalConfig convertToString:self.name.text];
+    model.position = [GlobalConfig convertToString:self.position.text];
+    model.phoneNumber = [GlobalConfig convertToString:self.phone.text];
+    model.number = [GlobalConfig convertToString:self.number.text];
+    model.fax = [GlobalConfig convertToString:self.fox.text];
+    model.email = [GlobalConfig convertToString:self.email.text];
+    model.company = [GlobalConfig convertToString:self.company.text];
+    model.address = [GlobalConfig convertToString:self.address.text];
+    model.postcode = [GlobalConfig convertToString:self.postcode.text];
+    return model;
+}
+
+#pragma mark - UIKeyboardNotification -
+- (void) keyBoardDidShow:(NSNotification *)noti
+{
+    [GlobalConfig keyBoardDidShow:noti scrollView:self.baseScrollView];
+}
+
+- (void) keyBoardDidDisapper:(NSNotification *)noti
+{
+    [GlobalConfig keyBoardDidDisapper:noti scrollView:self.baseScrollView];
+}
+
+@end

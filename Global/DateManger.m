@@ -1,0 +1,85 @@
+//
+//  DateManger.m
+//  SaleDemo
+//
+//  Created by wuzhensong on 14-4-27.
+//  Copyright (c) 2014年 mosh. All rights reserved.
+//
+
+#import "DateManger.h"
+#import "CacheHanding.h"
+#import "GlobalConfig.h"
+
+static NSString *taskPath = @"taskList";
+static NSString *clientPath = @"clientList";
+
+@implementation DateManger
+
++ (DateManger *) shareDateManger
+{
+    static DateManger *install;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        install = [[DateManger alloc] init];
+        
+    });
+    return  install;
+}
+
+- (id) init
+{
+    if (self = [super init]) {
+        
+        self.taskArray = [NSMutableArray array];
+        self.clientArray = [NSMutableArray array];
+        
+        
+        NSFileManager *fileManger = [NSFileManager defaultManager];
+        if ([fileManger fileExistsAtPath:[CacheHanding filepath:taskPath]]) {
+            NSData *data = [CacheHanding readCache:taskPath];
+            NSKeyedUnarchiver *unarch = [[NSKeyedUnarchiver alloc] initForReadingWithData:data];
+            NSArray *task = [unarch decodeObjectForKey:@"array"];
+            [unarch finishDecoding];
+            if ([GlobalConfig isKindOfNSArrayClassAndCountGreaterThanZero:task]) {
+                [self.taskArray addObjectsFromArray:task];
+            }
+        }
+        
+        if ([fileManger fileExistsAtPath:[CacheHanding filepath:clientPath]]) {
+            NSData *data = [CacheHanding readCache:clientPath];
+            NSKeyedUnarchiver *unarch = [[NSKeyedUnarchiver alloc] initForReadingWithData:data];
+            NSArray *client = [unarch decodeObjectForKey:@"array"];
+            if ([GlobalConfig isKindOfNSArrayClassAndCountGreaterThanZero:client]) {
+                [self.clientArray addObjectsFromArray:client];
+            }
+            
+        }
+    }
+    return self;
+}
+
+- (void) addtask:(TaskModel *)model
+{
+    [self.taskArray addObject:model];
+    
+    
+    NSMutableData *data = [NSMutableData dataWithCapacity:0];
+    NSKeyedArchiver *arch = [[NSKeyedArchiver alloc] initForWritingWithMutableData:data];
+    [arch encodeObject:self.taskArray forKey:@"array"];
+    [arch finishEncoding];
+    [CacheHanding writeCache:taskPath data:data];
+}
+
+- (void) addClient:(ClientModel *)model
+{
+    [self.clientArray addObject:model];
+    
+    
+    NSMutableData *data = [NSMutableData dataWithCapacity:0];
+    NSKeyedArchiver *arch = [[NSKeyedArchiver alloc] initForWritingWithMutableData:data];
+    [arch encodeObject:self.clientArray forKey:@"array"];
+    [arch finishEncoding];
+    [CacheHanding writeCache:clientPath data:data];
+}
+
+@end
