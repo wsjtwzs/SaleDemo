@@ -59,7 +59,7 @@
 - (NSComparisonResult)taskDateCompareWithCurentDate:(TaskModel *)model
 {
     NSString *time = [NSString stringWithFormat:@"%@  %@",model.date,model.time];
-    NSTimeInterval timestamp = [GlobalConfig datetoTimeStamp:time format:DATEFORMAT_07];
+    NSTimeInterval timestamp = [GlobalConfig datetoTimeStamp:time format:DATEFORMAT_06];
      return  [GlobalConfig dateCompareWithCurrentDate:[NSString stringWithFormat:@"%lf",timestamp]];
 }
 
@@ -114,7 +114,7 @@
         cell.contentView.backgroundColor = CLEARCOLOR;
     }
     
-    TaskModel *model = self.listArray[indexPath.row];
+    TaskModel *model = self.dataArray[indexPath.row];
     [cell setValueWithTaskModel:model];
     return cell;
 }
@@ -127,7 +127,7 @@
 - (void) tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
     NewTaskViewController *ctl = (NewTaskViewController *)[NewTaskViewController viewControllerWithNib];
-    ctl.task = self.listArray[indexPath.row];
+    ctl.task = self.dataArray[indexPath.row];
     ctl.taskState = TaskState_finish;
     [self.navigationController pushViewController:ctl animated:YES];
     
