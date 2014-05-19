@@ -40,6 +40,11 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view from its nib.
     
+    
+    
+    
+    
+    
     switch (self.loginPerson) {
         case LoginPerson_saleman:
             [self.view addSubview:self.salemanView];
